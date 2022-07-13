@@ -1,3 +1,6 @@
+from ast import And
+from re import L
+from this import d
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
@@ -5,46 +8,56 @@ import csv
 from math import fsum
 
 
-# def clean_frame():
-#df = pd.read_csv('amazon_spending.csv')
+# This function will print out a dataframe consisting of only the Order_Date, Subtotal, Shipping_Charge, Tax_Charged,
+# and Total_Charged columns. It provides an easier grid to view instead of looking at the 21 columns within Excel.
+# The '$' signs have been removed to make it easier to call the float instead of a string
 
-# # #fill empty spaces within grid to appear more appealing when viewed
-#     df = df.fillna('------')
+def clean_frame():
+    df = pd.read_csv('amazon_spending.csv').fillna('-------')
+    df["Total_Charged"] = df["Total_Charged"].str.replace('$','', regex=True).astype(float)
+    df["Tax_Charged"] = df["Tax_Charged"].str.replace('$', '', regex=True).astype(float)
+    clean = df[['Order_Date','Subtotal','Shipping_Charge','Tax_Charged','Total_Charged']]
+    return clean
+clean_frame()
 
-# # #remove the "$" from the Total Charged column in order to make it easier for analysis using panda math functions
 
-#df["Total_Charged"] = df["Total_Charged"].str.replace('$','', regex=True).astype(float)
-#     df["Tax_Charged"] = df["Tax_Charged"].str.replace('$', '', regex=True).astype(float)
+# Function provides a print return of the total of all spending starting from the origination of the account
+    #This includes:
+        #total cost of items before shipping and taxes
+        #total cost of shipping charges
+        #total cost of taxes charged
+        #total amount spent overall
 
-# #print out specific columns to narrow down the data 
-#     df[['Order_Date','Subtotal','Shipping_Charge','Tax_Charged','Total_Charged']]
 
-# clean_frame()
-
-# sum = pd.read_csv('amazon_spending.csv')
-# df = pd.DataFrame(sum)
-# sum.df["Total_Charged"] = df["Total_Charged"].str.replace('$','', regex=True).astype(float)
-
-def total():
+def totals():
     with open('amazon_spending.csv', 'r') as f:
-        spending_total = fsum(
-        float(d['Total_Charged'].strip("$")) if d['Total_Charged'].strip() else 0
-        for d in csv.DictReader(f) if d['Total_Charged'])
-    return total
+        reader = [x for x in csv.DictReader(f)]
 
- 
+        item_subtotal = fsum([float(x['Subtotal'].strip("$")) for x in reader])
+        shipping_total = fsum([float(x['Shipping_Charge'].strip("$")) for x in reader])
+        tax_total = fsum([float(x['Tax_Charged'].strip("$")) for x in reader])
+        spending_total = fsum([float(x['Total_Charged'].strip("$")) for x in reader])
+
+        print("$",item_subtotal, "spent before shipping costs and taxes")
+        print("$",shipping_total, "spent on shipping charges")
+        print("$",tax_total, "spent on taxes")
+        print("Total amount spent: $",spending_total)
+totals()
 
 
+#This function pulls 2 columns from the "amazon_items.csv" : the Category and Item_Total
+    #this function will help determine which category I have spent the most amount of money on and what I spend the most on 
 
-
-
-
-# df["Total_Charged"].mean()
-# df["Total_Charged"].median()
-# df["Total_Charged"].min()
-# df["Total_Charged"].max()
-# df["Total_Charged"].sum().round(2)
-# df["Tax_Charged"].sum().round(2)
+import pandas as pd
+from matplotlib import pyplot as plt
+plt.rcParams["figure.figsize"] = [10.00, 5.00]
+plt.rcParams["figure.autolayout"] = True
+columns = ["Category", "Item_Total"]
+df = pd.read_csv("amazon_items.csv", usecols=columns)
+print("Contents in csv file:\n", df)
+plt.plot(df.Category.astype(str))
+plt.plot(df.Item_Total.astype(str))
+plt.show()
 
 
 
@@ -70,7 +83,9 @@ def total():
 #             if column_header == 'Tax_Charged':
 #                 taxIndex = index
 #             if column_header == 'Total_Charged':
-#                 totIndex = index 
+#                 totIndex = index
+#              Else:
+#                  pass
 
 
 #         dates, order, sub, tax, tot = [], [], [], [], []
