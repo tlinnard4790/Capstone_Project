@@ -3,6 +3,7 @@
 from ast import And
 from re import L
 from this import d
+from unittest import skip
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -68,23 +69,6 @@ totals()
 
 
 
-#This function pulls 2 columns from the "amazon_items.csv" : the Category and Item_Total
-    #this function will help determine which category I have spent the most amount of money on and what I spend the most on 
-
-import pandas as pd
-from matplotlib import pyplot as plt
-plt.rcParams["figure.figsize"] = [10.00, 5.00]
-plt.rcParams["figure.autolayout"] = True
-columns = ["Category", "Item_Total"]
-df = pd.read_csv("amazon_items.csv", usecols=columns)
-print("Contents in csv file:\n", df)
-print(df.groupby(['Category']).sum())
-
-plt.plot(df.Category.astype(str))
-plt.plot(df.Item_Total.astype(str))
-plt.show()
-
-
 
 # This function plots a ling graph showcasing my total spending for each year 
 
@@ -128,7 +112,8 @@ def monthly_spending():
     fig, ax = plt.subplots(figsize=(16,7))
     sns.set_theme()
     sns.set_style("darkgrid")
-    sns.barplot(x=monthly_cost["Month"], y=monthly_cost['Total_Charged'], palette="flare")
+    g = sns.barplot(x=monthly_cost["Month"], y=monthly_cost['Total_Charged'], palette="flare")
+    g.set_xticklabels(["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
     plt.ylabel("Total Cost ($)")
     plt.title("How much did I spend each month?")
 
@@ -142,18 +127,84 @@ monthly_spending()
 
 
 def all_orders():
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import LinearLocator
     import seaborn as sns
+    import numpy as np
 
     df = pd.read_csv('amazon_spending.csv')
     df["Total_Charged"] = df["Total_Charged"].str.replace("$", "", regex=True).astype(float)
 
     fig, ax = plt.subplots(figsize=(16,7))
-    sns.lineplot(x=df['Order_Date'], y=df["Total_Charged"], palette="Blues")
-    sns.set_context("notebook", font_scale=1.5, rc={"lines.linewidth": 2.5})
+    g = sns.lineplot(x=df['Order_Date'], y=df["Total_Charged"], palette="Blues")
+    g.set_xticklabels(['2018','2019','2020','2021','2022'])
+    ax.get_xaxis().set_major_locator(LinearLocator(numticks=5))
+    ax.get_xaxis().set_minor_locator(mpl.ticker.AutoMinorLocator(20))
+    ax.grid(visible=True, which='major', color='w', linewidth=1.0)
+    sns.set_context(font_scale=1.5, rc={"lines.linewidth": 2.5})
     plt.ylabel("Total Cost ($)")
     plt.xlabel('Order Date')
-    plt.xscale('linear')
     plt.title("Cost of Amazon orders over the years")
 
 all_orders()
+
+
+
+#This function pulls 2 columns from the "amazon_items.csv" : the Category and Item_Total
+    #this function will help determine which category I have spent the most amount of money on and what I spend the most on 
+
+def category_spending():
+
+    import pandas as pd
+    from matplotlib import pyplot as plt
+    import seaborn as sns
+
+    columns = ["Category", "Item_Total"]
+    df = pd.read_csv("amazon_items.csv", usecols=columns)
+    df["Item_Total"] = df["Item_Total"].str.replace('$','', regex=True).astype(float)
+    df = df.groupby(['Category']).sum().reset_index()
+    categories = df.sort_values(by=['Item_Total'], ascending=False).head(n=12)
+    print(categories)
+
+
+
+    colors = sns.color_palette('pastel')[0:5]
+    fig, ax = plt.subplots(figsize=(20,7))
+    sns.set_theme()
+    sns.set_style("darkgrid")
+    sns.barplot(x=categories["Category"], y=categories['Item_Total'], palette="flare")
+    plt.ylabel("Amount Spent per Item Category ($)")
+    plt.title("Top Categories")
+
+category_spending()
+
+
+#This function pulls 2 columns from the "amazon_items.csv" : the Category and Item_Total
+    #this function will help determine which category I have spent the most amount of money on and what I spend the most on 
+    #uses the same data as the previous graph, however, it is displayed as a pie chart to show a better visual breakdown of spending
+
+
+def category_spending_pie():
+
+    import matplotlib.pyplot as plt 
+    import seaborn as sns
+
+    #import data
+    columns = ["Category", "Item_Total"] 
+    df = pd.read_csv("amazon_items.csv", usecols=columns)
+    df["Item_Total"] = df["Item_Total"].str.replace('$','', regex=True).astype(float)
+    df = df.groupby(['Category']).sum().reset_index()
+    categories = df.sort_values(by=['Item_Total'], ascending=False).head(n=12)
+
+    colors = sns.color_palette("bright")
+    plt.pie(categories['Item_Total'], labels = categories['Category'], colors=colors,
+    autopct='%.0f%%', rotatelabels='true')
+    plt.legend(
+        loc='upper left',
+        prop={'size': 12},
+        bbox_to_anchor=(0.5, 2.1))
+    theme = plt.get_cmap('bwr')
+    plt.show()
+    
+category_spending_pie()
