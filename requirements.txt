@@ -1,7 +1,9 @@
 #Pip installable libraries required for this project#
+pip3 install:
 
 fpdf -  generate PDF files
 pdfkit -  used to convert custom DataFrame into PDF format
+textwrap - required to make x-axis labels easier to read on plots
 Pandas -  provide expressive data from the CSV files
 Seaborn - data visualization showcased as different graphs
 encoders(email) - needed within email function to extract payload, encode, and reset 
@@ -11,4 +13,8 @@ svg2rlg(svglib.svglib) - required to convert the plot svg files into rlg (report
 MIMEText(email.mime.text) - email should be installed at this point, but required to create MIME object text for the payload
 MIMEBase(email.mime.base) - email should be installed at this point, but required 
 renderPDF(reportlab.graphics) - required to convert the rlg files into PDF format
+LinearLocator(matplotlib.ticker) - required to space out x-axis ticks on all_orders plot 
 MIMEMultipart(email.mime.multipart) - required within email(main) function
+
+wkhtmltopdf - used in conversion of DataFrame to html, which then converts html file to PDF
+	(downloaded & installed through windows, not cmd)
