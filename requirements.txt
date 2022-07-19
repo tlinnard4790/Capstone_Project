@@ -1,0 +1,14 @@
+#Pip installable libraries required for this project#
+
+fpdf -  generate PDF files
+pdfkit -  used to convert custom DataFrame into PDF format
+Pandas -  provide expressive data from the CSV files
+Seaborn - data visualization showcased as different graphs
+encoders(email) - needed within email function to extract payload, encode, and reset 
+matplotlib.pyplot - used for data visualization and manipulating the different plots
+PdfFileMerger(PyPDF2) - merge the PDF files into single PDF 
+svg2rlg(svglib.svglib) - required to convert the plot svg files into rlg (reportlab graphics) format
+MIMEText(email.mime.text) - email should be installed at this point, but required to create MIME object text for the payload
+MIMEBase(email.mime.base) - email should be installed at this point, but required 
+renderPDF(reportlab.graphics) - required to convert the rlg files into PDF format
+MIMEMultipart(email.mime.multipart) - required within email(main) function
