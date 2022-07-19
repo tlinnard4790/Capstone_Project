@@ -1,20 +1,54 @@
-
-from reportlab.graphics import renderPDF
-from svglib.svglib import svg2rlg
-from PyPDF2 import PdfFileMerger
-from reportlab.platypus import SimpleDocTemplate
-from ast import And
-from re import L
-from this import d
-from unittest import skip
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import csv
-from math import fsum
-import seaborn as sns
-import emails
 import os
+import csv
+import fpdf
+import pdfkit
+import smtplib
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from math import fsum
+from email import encoders
+import matplotlib.pyplot as plt
+from PyPDF2 import PdfFileMerger
+from svglib.svglib import svg2rlg
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from reportlab.graphics import renderPDF
+from email.mime.multipart import MIMEMultipart
+from reportlab.platypus import SimpleDocTemplate
+
+
+def main():
+    body = 'Amazon spending data, see attachment'
+    sender = 'tlinnard4790@gmail.com'
+    password = 'ailyslecivqwbsqc'
+    receiver = 'tlinnard4790@gmail.com'
+    # Basic Email formatting
+    message = MIMEMultipart()
+    message["From"] = sender
+    message["To"] = receiver
+    message["Subject"] = 'Amazon Spending Data'
+
+    message.attach(MIMEText(body, 'plain'))
+
+    pdfname = 'amazon_data.pdf'
+    binary_pdf = open(pdfname, 'rb')
+
+    payload = MIMEBase('application', 'octate-stream', Name=pdfname)
+    payload.set_payload((binary_pdf).read())
+
+    encoders.encode_base64(payload)
+    payload.add_header('Content-Decomposition', 'attachment', filename=pdfname)
+    message.attach(payload)
+
+    session = smtplib.SMTP('smtp.gmail.com', 587)
+    session.starttls()
+    session.login(sender, password)
+
+    text = message.as_string()
+    session.sendmail(sender, receiver, text)
+    session.quit()
+    print('Mail Sent')
 
 
 # This function will print out a dataframe consisting of only the Order_Date, Subtotal, Shipping_Charge, Tax_Charged,
@@ -22,26 +56,18 @@ import os
 # The '$' signs have been removed to make it easier to call the float instead of a string
 
 def source_frame():
-    import pandas as pd
-    import emails
+
 
     df = pd.read_csv('amazon_spending.csv').fillna('-------')
     df["Total_Charged"] = df["Total_Charged"].str.replace('$','', regex=True).astype(float)
     df["Tax_Charged"] = df["Tax_Charged"].str.replace('$', '', regex=True).astype(float)
-    source = df[['Order_Date','Subtotal','Shipping_Charge','Tax_Charged','Total_Charged']]
-     
-    # reports.generate("report.pdf", "YoY Amazon Spending", "Report.", source)
-    # sender = "tlinnard4790@gmail.com"
-    # receiver = "tlinnard4790@gmail.com".format(os.environ.get('USER'))
-    # subject = "YoY Amazon Spending"
-    # body = "Hi\n\nI'm sending an attachment regarding your Amazon spending."
-    # message = emails.generate(sender, receiver, subject, body, "/New.pdf")
-    # #emails.send(message)  
-    df.loc[df['Total_Charged'] == df['Total_Charged'].max().round(2)]
-    df.sort_values(ascending=False, by='Total_Charged').head(5)
-    df.loc[df['Total_Charged'] == df['Total_Charged'].min().round(2)]
+    max = df.loc[df['Total_Charged'] == df['Total_Charged'].max().round(2)]
+    max_5 = df.sort_values(ascending=False, by='Total_Charged').head(5)
+    min = df.loc[df['Total_Charged'] == df['Total_Charged'].min().round(2)]
 
-    return source
+    source = df[['Order_Date','Subtotal','Shipping_Charge','Tax_Charged','Total_Charged']]
+
+    return source, max, max_5, min
 
 source_frame()
 
@@ -51,9 +77,6 @@ source_frame()
 
 
 def df_pdf(method):  
-  
-    import pandas as pd 
-    import pdfkit
 
     df = pd.read_csv('amazon_spending.csv').fillna('-------')
     df["Total_Charged"] = df["Total_Charged"].str.replace('$','', regex=True).astype(float)
@@ -63,7 +86,6 @@ def df_pdf(method):
     if method == "string":
 
         try:
-            options = {'page-size: A4','margins: 1in',}
                 
             config = pdfkit.configuration(wkhtmltopdf=bytes(r"C:\Users\tanne\OneDrive\Documents\Tek Systems\Capstone Project\wkhtmltopdf\bin\wkhtmltopdf.exe", 'utf8'))
             f = open('exp.html', 'w')
@@ -95,9 +117,6 @@ df_pdf('string')
 
 
 def totals():
-    import csv
-    from math import fsum
-
 
     with open('amazon_spending.csv', 'r') as f:
 
@@ -111,22 +130,31 @@ def totals():
     df["Total_Charged"] = df["Total_Charged"].str.replace('$','', regex=True).astype(float)
     average_spent = df['Total_Charged'].mean().round(2)
 
-    print("----------Subtotal Amount----------")
-    print("$",item_subtotal, "spent before shipping costs and taxes")
-    print("")
-    print("----------Shipping Total Amount----------")
-    print("$",shipping_total, "spent on shipping charges")
-    print("")
-    print("----------Total Amount of Taxes----------")
-    print("$",tax_total, "spent on taxes")
-    print("")
-    print("----------Total Amount Spent on All Orders----------")
-    print("Total amount spent: $",spending_total)
-    print("")
-    print("----------Average Amount Spent on All Orders----------")
-    print("The average amount spent on an order was: $",average_spent)
 
+    pdf = fpdf.FPDF() # create pdf
+    pdf.add_page() #add page!
+    pdf.set_font("Arial", "U", size=18) # font
+    pdf.cell(200, 30, txt='Subtotal Amount ($)                                                                    ', ln=3, align="L") #write to pdf, They need to be strings
+    pdf.set_font("Arial", size=16)
+    pdf.cell(200, 10, txt=str(item_subtotal), ln=1, align="L")
+    pdf.set_font("Arial", "U", size=18)
+    pdf.cell(200, 30, txt="Shipping Total Amount ($)                                                           ", ln=3, align="L")
+    pdf.set_font("Arial", size=16)
+    pdf.cell(200, 10, txt=str(shipping_total), ln=1, align="L")
+    pdf.set_font("Arial", "U", size=18)
+    pdf.cell(200, 30, txt="Total Amount Spent on Taxes ($)                                                ", ln=3, align="L")
+    pdf.set_font("Arial", size=16)
+    pdf.cell(200, 10, txt=str(tax_total), ln=1, align="L")
+    pdf.set_font("Arial", "U", size=18)
+    pdf.cell(200, 30, txt="Total-Amount Spent on All-Orders ($)                                          ", ln=3, align="L")
+    pdf.set_font("Arial", size=16)
+    pdf.cell(200, 10, txt=str(spending_total), ln=1, align="L")
+    pdf.set_font("Arial", "U", size=18)
+    pdf.cell(200, 30, txt="Average Amount Spent on All Orders ($)                                        ", ln=3, align="L")
+    pdf.set_font("Arial", size=16)
+    pdf.cell(200, 10, txt=str(average_spent), ln=1, align="L")
 
+    pdf.output("totals.pdf")
 totals()
 
 
@@ -145,13 +173,6 @@ def all_orders():
     df = pd.read_csv('amazon_spending.csv')
     df["Total_Charged"] = df["Total_Charged"].str.replace("$", "", regex=True).astype(float)
 
-
-
-
-
-
-
-
     fig, ax = plt.subplots(figsize=(16,7))
     g = sns.lineplot(x=df['Order_Date'], y=df["Total_Charged"], palette="Blues")
     g.set_xticklabels(['2018','2019','2020','2021','2022'])
@@ -159,7 +180,8 @@ def all_orders():
     ax.get_xaxis().set_major_locator(LinearLocator(numticks=5))
     ax.get_xaxis().set_minor_locator(mpl.ticker.AutoMinorLocator(20))
     ax.grid(visible=True, which='major', color='w', linewidth=1.0)
-    sns.set_context(font_scale=1.5, rc={"lines.linewidth": 1.5})
+    sns.set_context(font_scale=1.5, rc={"lines.linewidth": 1})
+    sns.set_style("darkgrid")
 
     plt.ylabel("Total Cost ($)")
     plt.xlabel('Order Date')
@@ -188,10 +210,14 @@ def yearly_spending():
     fig, ax = plt.subplots(figsize=(16,7))
 
     sns.set_theme()
-    sns.lineplot(x=yoy_cost["Year"], y=yoy_cost["Total_Charged"], palette="mako")
+    sns.lineplot(x=yoy_cost["Year"], y=yoy_cost["Total_Charged"],  err_style='bars', palette="mako")
     sns.set_context("notebook", font_scale=1.5, rc={"lines.linewidth": 5})
+    sns.set_style("darkgrid")
     plt.title("How much did I spend each year?")
     plt.ylabel("Total Cost ($)")
+    ax.grid(visible=True, which='major', color='w', linewidth=1.0)
+    for x,y in zip(yoy_cost["Year"], yoy_cost["Total_Charged"]):
+        plt.text(x=x, y=y-150, s='{:.0f}'.format(y))
     fig.savefig('yearly_spending.svg')
 
     yearly_spending_svg=svg2rlg('yearly_spending.svg')
@@ -225,6 +251,9 @@ def monthly_spending():
     g.set_xticklabels(["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
     plt.ylabel("Total Cost ($)")
     plt.title("How much did I spend each month?")
+    ax.grid(visible=True, which='major', color='w', linewidth=1.0)
+    for i in ax.containers:
+        ax.bar_label(i,)
     fig.savefig('monthly_spending.svg')
 
     monthly_spending_svg=svg2rlg('monthly_spending.svg')
@@ -255,6 +284,8 @@ def daily_spending():
     sns.set_style("darkgrid")
     plt.ylabel("Total Spent ($)")
     plt.title("Which Days of the Week Do I Spend The Most Money")
+    for i in ax.containers:
+        ax.bar_label(i,)
     ax.grid(visible=True, which='major', color='w', linewidth=1.0)
     fig.savefig('daily_spending.svg')
 
@@ -289,11 +320,14 @@ def category_spending():
     sns.set_style("darkgrid")
     sns.barplot(x=categories["Category"], y=categories['Item_Total'], palette="crest")
     labels = [textwrap.fill(label.get_text(), 12) for label in ax.get_xticklabels()]
-    ax.set_xticklabels(labels, fontsize=10);
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.grid(visible=True, which='major', color='w', linewidth=1.0)
     plt.ylabel("Amount Spent per Item Category ($)")
     plt.title("Top Categories")
-    fig.savefig('category_spending.svg')
+    for i in ax.containers:
+        ax.bar_label(i,)
 
+    fig.savefig('category_spending.svg')
     category_spending_svg=svg2rlg('category_spending.svg')
     renderPDF.drawToFile(category_spending_svg, "category_spending.pdf")
 
@@ -307,10 +341,9 @@ category_spending()
     #uses the same data as the previous graph, however, it is displayed as a pie chart to show a better visual breakdown of spending
 
 
-def category_spending_pie():
+def cat_spending_pie():
 
-    import matplotlib.pyplot as plt 
-    import seaborn as sns
+    import matplotlib.pyplot as grph 
     import pandas as pd
 
     #import data
@@ -318,36 +351,40 @@ def category_spending_pie():
     df = pd.read_csv("amazon_items.csv", usecols=columns)
     df["Item_Total"] = df["Item_Total"].str.replace('$','', regex=True).astype(float)
     df = df.groupby(['Category']).sum().reset_index()
-    categories = df.sort_values(by=['Item_Total'], ascending=False).head(n=12)
+    cats = df.sort_values(by=['Item_Total'], ascending=False).head(n=12)
 
     colors = sns.color_palette("bright")
-    plt.pie(categories['Item_Total'], labels = categories['Category'], colors=colors,
+    grph.pie(cats['Item_Total'], labels = cats['Category'], colors=colors,
     autopct='%.0f%%', rotatelabels='true')
-    plt.legend(
+    fig = plt.gcf()
+    fig.legend(
         loc='upper left',
         prop={'size': 10},
         bbox_to_anchor=(0.5, 2.1))
     theme = plt.get_cmap('bwr')
-    fig = plt.gcf()
-    plt.show()
-    fig.savefig('category_spending_pie.svg', bbox_inches='tight')
 
-    category_spending_pie_svg=svg2rlg('category_spending_pie.svg')
-    renderPDF.drawToFile(category_spending_pie_svg, "category_spending_pie.pdf")
+    fig.savefig('cat_spending_pie.svg', bbox_inches='tight')
 
-category_spending_pie()
+    cat_spending_pie_svg=svg2rlg('cat_spending_pie.svg')
+    renderPDF.drawToFile(cat_spending_pie_svg, "cat_spending_pie.pdf")
 
+cat_spending_pie()
 
 
 
-pdf_list = ['amazon_spending.pdf', 'all_orders.pdf', 'yearly_spending.pdf', 'monthly_spending.pdf',
-'daily_spending.pdf', 'category_spending.pdf', 'category_spending_pie.pdf']
+def pdf_merge():
+    pdf_list = ['amazon_spending.pdf', 'totals.pdf', 'all_orders.pdf', 'yearly_spending.pdf', 'monthly_spending.pdf',
+                'daily_spending.pdf', 'category_spending.pdf', 'cat_spending_pie.pdf']
 
-merger = PdfFileMerger()
+    merger = PdfFileMerger()
 
-for pdf in pdf_list:
-    merger.append(pdf)
+    for pdf in pdf_list:
+        merger.append(pdf)
 
-merger.write("amazon_data.pdf") 
-merger.close
+    merger.write("amazon_data.pdf") 
+    merger.close
+pdf_merge()
 
+
+
+main()
