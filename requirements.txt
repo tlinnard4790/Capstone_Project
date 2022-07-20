@@ -1,20 +1,19 @@
 #Pip installable libraries required for this project#
-pip3 install:
 
-fpdf -  generate PDF files
-pdfkit -  used to convert custom DataFrame into PDF format
-textwrap - required to make x-axis labels easier to read on plots
-Pandas -  provide expressive data from the CSV files
-Seaborn - data visualization showcased as different graphs
-encoders(email) - needed within email function to extract payload, encode, and reset 
-matplotlib.pyplot - used for data visualization and manipulating the different plots
-PdfFileMerger(PyPDF2) - merge the PDF files into single PDF 
-svg2rlg(svglib.svglib) - required to convert the plot svg files into rlg (reportlab graphics) format
-MIMEText(email.mime.text) - email should be installed at this point, but required to create MIME object text for the payload
-MIMEBase(email.mime.base) - email should be installed at this point, but required 
-renderPDF(reportlab.graphics) - required to convert the rlg files into PDF format
-LinearLocator(matplotlib.ticker) - required to space out x-axis ticks on all_orders plot 
-MIMEMultipart(email.mime.multipart) - required within email(main) function
+fpdf==1.7.2  generate PDF files
+pdfkit==1.0.0 -  used to convert custom DataFrame into PDF format
+textwrap==1.11.0 - required to make x-axis labels easier to read on plots
+Pandas==1.4.3 -  provide expressive data from the CSV files
+Seaborn==0.11.2 - data visualization showcased as different graphs
+encoders(email)==0.6 - needed within email function to extract payload, encode, and reset 
+matplotlib.pyplot==3.5.2 - used for data visualization and manipulating the different plots
+PdfFileMerger(PyPDF2)==2.5.0 - merge the PDF files into single PDF 
+svg2rlg(svglib.svglib)==1.3.0 - required to convert the plot svg files into rlg (reportlab graphics) format
+MIMEText(email.mime.text)==0.6 - email should be installed at this point, but required to create MIME object text for the payload
+MIMEBase(email.mime.base)==0.6 - email should be installed at this point, but required 
+renderPDF(reportlab.graphics)==3.6.11 - required to convert the rlg files into PDF format
+LinearLocator(matplotlib.ticker)==3.5.2 - required to space out x-axis ticks on all_orders plot 
+MIMEMultipart(email.mime.multipart)==0.6 - required within email(main) function
 
 wkhtmltopdf - used in conversion of DataFrame to html, which then converts html file to PDF
 	(downloaded & installed through windows, not cmd)
