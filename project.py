@@ -4,9 +4,9 @@ import csv
 import fpdf
 import pdfkit
 import smtplib
-import pass_config
 import textwrap
 import numpy as np
+import pass_config
 import pandas as pd
 import seaborn as sns
 from math import fsum
@@ -22,9 +22,16 @@ from matplotlib.ticker import LinearLocator
 from email.mime.multipart import MIMEMultipart
 
 
-# Main function will take the final output from merge_pdf function and email the merged file to the credentials from pass_config
+# main function will take the final output from merge_pdf function and email the merged file to the credentials from pass_config
 # utilized a separate file to store Username and Password information to keep data more secure, then call those variables
 # into the sender, password, and receiver variables of main
+
+df = pd.read_csv('amazon_spending.csv').fillna('-------')
+df["Total_Charged"] = df["Total_Charged"].str.replace(
+        '$', '', regex=True).astype(float)
+df["Tax_Charged"] = df["Tax_Charged"].astype(str).str.replace(
+        '$', '', regex=True).astype(float)
+
 
 def main():
 
@@ -38,7 +45,7 @@ def main():
     if(re.fullmatch(regex, sender)):
         print("Valid Email")
     elif sender.startswith(pass_config):
-        
+
         print("Valid Credentials")
     else:
         print("Invalid Email")
@@ -61,7 +68,7 @@ def main():
     encoders.encode_base64(payload)
     payload.add_header('Content-Decomposition', 'attachment', filename=pdfname)
     message.attach(payload)
-
+    # start secure TLS connection
     session = smtplib.SMTP('smtp.gmail.com', 587)
     session.starttls()
     session.login(sender, password)
@@ -77,12 +84,7 @@ def main():
 # The '$' signs have been removed to make it easier to call the float instead of a string
 
 def source_frame():
-
-    df = pd.read_csv('amazon_spending.csv').fillna('-------')
-    df["Total_Charged"] = df["Total_Charged"].str.replace(
-        '$', '', regex=True).astype(float)
-    df["Tax_Charged"] = df["Tax_Charged"].str.replace(
-        '$', '', regex=True).astype(float)
+ 
     max = df.loc[df['Total_Charged'] == df['Total_Charged'].max().round(2)]
     max_5 = df.sort_values(ascending=False, by='Total_Charged').head(5)
     min = df.loc[df['Total_Charged'] == df['Total_Charged'].min().round(2)]
@@ -102,11 +104,6 @@ source_frame()
 
 def df_pdf(method):
 
-    df = pd.read_csv('amazon_spending.csv').fillna('-------')
-    df["Total_Charged"] = df["Total_Charged"].str.replace(
-        '$', '', regex=True).astype(float)
-    df["Tax_Charged"] = df["Tax_Charged"].str.replace(
-        '$', '', regex=True).astype(float)
     source = df[['Order_Date', 'Subtotal',
                  'Shipping_Charge', 'Tax_Charged', 'Total_Charged']]
 
@@ -199,13 +196,10 @@ totals()
 
 def all_orders():
 
-    df = pd.read_csv('amazon_spending.csv')
-    df["Total_Charged"] = df["Total_Charged"].str.replace(
-        "$", "", regex=True).astype(float)
-
     fig, ax = plt.subplots(figsize=(16, 7))
     g = sns.lineplot(x=df['Order_Date'],
                      y=df["Total_Charged"], palette="Blues")
+# manual xticklabels for each year ranging 2018-2022
     g.set_xticklabels(['2018', '2019', '2020', '2021', '2022'])
 
     ax.get_xaxis().set_major_locator(LinearLocator(numticks=5))
@@ -217,8 +211,8 @@ def all_orders():
     plt.ylabel("Total Cost ($)")
     plt.xlabel('Order Date')
     plt.title("Cost of Amazon orders over the years")
+# save svg -> rlg -> pdf
     fig.savefig('all_orders.svg')
-
     all_orders_svg = svg2rlg('all_orders.svg')
     renderPDF.drawToFile(all_orders_svg, "all_orders.pdf")
 
@@ -231,14 +225,12 @@ all_orders()
 
 def yearly_spending():
 
-    df = pd.read_csv('amazon_spending.csv')
-    df["Total_Charged"] = df["Total_Charged"].str.replace(
-        "$", "", regex=True).astype(float)
     df["Year"] = pd.DatetimeIndex(df['Order_Date']).year
     yoy_cost = df.groupby(["Year"], as_index=False).sum()
     print(yoy_cost)
     fig, ax = plt.subplots(figsize=(16, 7))
 
+    # set up and customize line plot
     sns.set_theme()
     sns.lineplot(x=yoy_cost["Year"], y=yoy_cost["Total_Charged"],
                  err_style='bars', palette="mako")
@@ -249,8 +241,8 @@ def yearly_spending():
     ax.grid(visible=True, which='major', color='w', linewidth=1.0)
     for x, y in zip(yoy_cost["Year"], yoy_cost["Total_Charged"]):
         plt.text(x=x, y=y-150, s='{:.0f}'.format(y))
+# save svg -> rlg -> pdf
     fig.savefig('yearly_spending.svg')
-
     yearly_spending_svg = svg2rlg('yearly_spending.svg')
     renderPDF.drawToFile(yearly_spending_svg, "yearly_spending.pdf")
 
@@ -263,19 +255,17 @@ yearly_spending()
 
 def monthly_spending():
 
-    df = pd.read_csv('amazon_spending.csv')
     df['Month'] = pd.DatetimeIndex(df['Order_Date']).month
-    df["Total_Charged"] = df["Total_Charged"].str.replace(
-        "$", "", regex=True).astype(float)
     monthly_cost = df.groupby(["Month"], as_index=False).sum()
     print(monthly_cost)
-
+# set up and customize bar plot
     sns.set()
     fig, ax = plt.subplots(figsize=(16, 7))
     sns.set_theme()
     sns.set_style("darkgrid")
     g = sns.barplot(
         x=monthly_cost["Month"], y=monthly_cost['Total_Charged'], palette="flare")
+# manual xticklabels for eachmonth of the year
     g.set_xticklabels(["January", "February", "March", "April", "May", "June",
                       "July", "August", "September", "October", "November", "December"])
     plt.ylabel("Total Cost ($)")
@@ -283,8 +273,8 @@ def monthly_spending():
     ax.grid(visible=True, which='major', color='w', linewidth=1.0)
     for i in ax.containers:
         ax.bar_label(i,)
+# save svg -> rlg -> pdf
     fig.savefig('monthly_spending.svg')
-
     monthly_spending_svg = svg2rlg('monthly_spending.svg')
     renderPDF.drawToFile(monthly_spending_svg, "monthly_spending.pdf")
 
@@ -297,16 +287,14 @@ monthly_spending()
 
 def daily_spending():
 
-    df = pd.read_csv('amazon_spending.csv')
     df['Days'] = pd.DatetimeIndex(df['Order_Date']).dayofweek
-    df["Total_Charged"] = df["Total_Charged"].str.replace(
-        "$", "", regex=True).astype(float)
     daily_cost = df.groupby(["Days"], as_index=False).sum()
     print(daily_cost)
-
+# set up and customize barplot
     fig, ax = plt.subplots(figsize=(18, 7))
     g = sns.barplot(
         x=daily_cost["Days"], y=daily_cost["Total_Charged"], palette='icefire')
+# manual xticklabels for each day of the week
     g.set_xticklabels(["Monday", "Tuesday", "Wednesday",
                       "Thursday", "Friday", "Saturday", "Sunday"])
     sns.set_theme()
@@ -316,8 +304,8 @@ def daily_spending():
     for i in ax.containers:
         ax.bar_label(i,)
     ax.grid(visible=True, which='major', color='w', linewidth=1.0)
+# save svg -> rlg -> pdf
     fig.savefig('daily_spending.svg')
-
     daily_spending_svg = svg2rlg('daily_spending.svg')
     renderPDF.drawToFile(daily_spending_svg, "daily_spending.pdf")
 
@@ -332,8 +320,8 @@ def category_spending():
 
     columns = ["Category", "Item_Total"]
     df = pd.read_csv("amazon_items.csv", usecols=columns)
-    df["Item_Total"] = df["Item_Total"].str.replace(
-        '$', '', regex=True).astype(float)
+    df["Item_Total"] = df["Item_Total"].astype(str).str.replace(
+         '$', '', regex=True).astype(float)
     df = df.groupby(['Category']).sum().reset_index()
     categories = df.sort_values(by=['Item_Total'], ascending=False).head(n=12)
     print(categories)
@@ -352,7 +340,7 @@ def category_spending():
     plt.title("Top Categories")
     for i in ax.containers:
         ax.bar_label(i,)
-
+    # save svg -> rlg -> pdf
     fig.savefig('category_spending.svg')
     category_spending_svg = svg2rlg('category_spending.svg')
     renderPDF.drawToFile(category_spending_svg, "category_spending.pdf")
@@ -368,20 +356,17 @@ category_spending()
 
 def cat_spending_pie():
 
-    import matplotlib.pyplot as grph
-    import pandas as pd
-
     #import data
     columns = ["Category", "Item_Total"]
     df = pd.read_csv("amazon_items.csv", usecols=columns)
-    df["Item_Total"] = df["Item_Total"].str.replace(
+    df["Item_Total"] = df["Item_Total"].astype(str).str.replace(
         '$', '', regex=True).astype(float)
     df = df.groupby(['Category']).sum().reset_index()
     cats = df.sort_values(by=['Item_Total'], ascending=False).head(n=12)
 
     colors = sns.color_palette("bright")
-    grph.pie(cats['Item_Total'], labels=cats['Category'], colors=colors,
-             autopct='%.0f%%', rotatelabels='true')
+    plt.pie(cats['Item_Total'], labels=cats['Category'], colors=colors,
+            autopct='%.0f%%', rotatelabels='true')
     fig = plt.gcf()
     fig.legend(
         loc='upper left',
@@ -389,24 +374,23 @@ def cat_spending_pie():
         bbox_to_anchor=(0.5, 2.1))
     theme = plt.get_cmap('bwr')
     plt.show()
-
+    # save svg -> rlg -> pdf
     fig.savefig('cat_spending_pie.svg', bbox_inches='tight')
-
     cat_spending_pie_svg = svg2rlg('cat_spending_pie.svg')
     renderPDF.drawToFile(cat_spending_pie_svg, "cat_spending_pie.pdf")
 
 
 cat_spending_pie()
 
-
 # after all svg files have been converted to their respective pdf files, this function then pulls each of those pdf files
 # from a list and merges them into a single file I named amazon_data.pdf
 
-def pdf_merge():
+
+def pdf_merge(pdf_file):
     pdf_list = ['amazon_spending.pdf', 'totals.pdf', 'all_orders.pdf', 'yearly_spending.pdf', 'monthly_spending.pdf',
                 'daily_spending.pdf', 'category_spending.pdf', 'cat_spending_pie.pdf']
-
-    merger = PdfFileMerger()
+    # merge files
+    merger = PdfFileMerger(pdf_file)
 
     for pdf in pdf_list:
         merger.append(pdf)
@@ -415,7 +399,5 @@ def pdf_merge():
     merger.close
 
 
-pdf_merge()
-
-
-main()
+if __name__ == '__main__':
+    main()
